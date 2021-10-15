@@ -24,7 +24,7 @@ const STREET = 17;
 const CITY = 18;
 const POSTCODE = 19;
 const DIV = 20;
-const MONTHLY_REPORTS = 21;
+const MONTHLY_REPORTS = 'monthy_reports';
 
 // Manually creating a array of publishers that exists in the contact list .. but not on all reportsSheets
 // due to no longer in our cong. (No need to keep registercards)
@@ -36,25 +36,33 @@ $namesToIgnore = [
     'Melanie - Sprogö',
     'Shari - Haim',
     'Bengt - Nilsson',
+    'Maja-Leena - Nilsson',
+    'Ulf - Nilsson',
+    'Bertil - Pettersson'
 ];
 
 $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
-$spreadsheet = $reader->load("xls/Manadsrapporter-2020-2021.xlsx");
+$spreadsheet = $reader->load("xls/Manadsrapporter-2020-2022.xlsx");
 $contactListSheetData = $spreadsheet->getSheetByName('Kontaktlistan')->toArray();
 // $contactListSheetData[2] is the column header so lets save it as a new var with clear purpouse.
 $headerIndexMap = $contactListSheetData[2];
 
 // Remove bottom rows that does not contin any intesresting data
-array_splice($contactListSheetData, 88);
+array_splice($contactListSheetData, 105);
 
 // Remove first 2 rows. Some info about sircuitOverseer
 unset($contactListSheetData[0]);
 unset($contactListSheetData[1]);
 // Also the headr row
 unset($contactListSheetData[2]);
+/*
+echo("<pre>");
+print_r($contactListSheetData);
+echo("</pre>");
+*/
+
 // print_r($spreadsheet->getSheetNames());
 unset($sheetNames[0]); // Konaktlistan
-unset($sheetNames[13]); // Some last unused sheet
 // Add a extra key where we can tack on publisher we find in reportSheets but we do not have in Kontaktlistam
 $contactListSheetData['missing'] = [];
 
@@ -62,21 +70,32 @@ $contactListSheetData['missing'] = [];
 $reportSheets = [];
 $reportSheetsNames = [];
 foreach ($spreadsheet->getSheetNames() as $sheetName) {
-    if (!in_array($sheetName, ['Kontaktlistan', 'Blad1'])) {
+    if (!in_array($sheetName, ['Kontaktlistan', 'Oktober-21'])) {
         $reportSheets[] = $spreadsheet->getSheetByName($sheetName)->toArray();
         $reportSheetsNames[] = $sheetName;
     }
      
 }
 
+// Create a new array with only the data we are interested in
+$fullReportArray = [];
+$publisherNames = [];
 // Now try to attach each monthly report to the correct publisher
 $i=1;
 foreach ($contactListSheetData as $index => $row) {
     // if we have both first and last name we also try to find it in next sheet.
     //echo ($index . " : " .$row[FIRSTNAME]." - ". $row[LASTNAME]. "- </br>");
-    if ($row[FIRSTNAME] && $row[LASTNAME]) {
+
+    // We need to skipp past some rows that are just mid-sheet header info
+    $notLastNames = ['Efternamn', 'FÖRKUNNARE  TL', 'HJÄPPIONJÄRAR', 'TL', 'PIONJÄRAR'];
+    if ($row[FIRSTNAME] && $row[LASTNAME] && !(in_array(trim($row[LASTNAME]), $notLastNames))) {
+        $publisherNames[] = $row[LASTNAME]." \t ". $row[FIRSTNAME];
+        // only keep interesting columns
+        array_splice($row, 21);
+        // Save the publisher in fullReport
+        $fullReportArray[$index] = $row;
         // Make sure we set $contactListSheetData[$index][MONTHLY_REPORTS] to an array (overriting prev value)
-        $contactListSheetData[$index][MONTHLY_REPORTS] = [];
+        $fullReportArray[$index][MONTHLY_REPORTS] = [];
 
         // Now push each monthts sheet data onto it
         foreach ($reportSheets as $reportsIndex => $reportSheet) {
@@ -89,11 +108,11 @@ foreach ($contactListSheetData as $index => $row) {
             foreach($reportSheet as $reportRow) {
                 // For some stupid reason reportSheet is pasted on cell offset to the right .. so accout for that
                 $offset = 1;
-                if ($reportRow[FIRSTNAME + $offset] === $row[FIRSTNAME] && 
-                    $reportRow[LASTNAME + $offset] === $row[LASTNAME]) {
+                if (trim($reportRow[FIRSTNAME + $offset]) === trim($row[FIRSTNAME]) && 
+                    trim($reportRow[LASTNAME + $offset]) === trim($row[LASTNAME])) {
                     // Splice up to key 17
                     array_splice($reportRow, 18);
-                    $contactListSheetData[$index][MONTHLY_REPORTS][] = $reportRow;
+                    $fullReportArray[$index][MONTHLY_REPORTS][] = $reportRow;
                     // When we find a match we can stop searching
                     $publisherFound = true;
                     break;
@@ -103,7 +122,7 @@ foreach ($contactListSheetData as $index => $row) {
             // If we found a publisher in a monthlyReportSheet that we cannot find in the contactList
             // and it is not set to ignore. 
             if (!$publisherFound && !in_array($row[FIRSTNAME]." - ". $row[LASTNAME], $namesToIgnore)) {
-                $contactListSheetData['missing'][$row[FIRSTNAME]." - ". $row[LASTNAME]][] = "Coould not find " .$index . " : " .$row[FIRSTNAME]." - ". $row[LASTNAME] . " in shhet ". $reportSheetsNames[$reportsIndex];
+                $fullReportArray['missing'][$row[FIRSTNAME]." - ". $row[LASTNAME]][] = "Coould not find " .$index . " : " .$row[FIRSTNAME]." - ". $row[LASTNAME] . " in shhet ". $reportSheetsNames[$reportsIndex];
 
             }
         }
@@ -112,10 +131,15 @@ foreach ($contactListSheetData as $index => $row) {
 	$i++;
 }
 
+sort($publisherNames);
 
+foreach($publisherNames as $key => $name) {
+    echo $key+1 . ": \t" . $name. '</br>';
+}
 
+/*
 echo("<pre>");
-print_r($contactListSheetData);
+print_r($fullReportArray);
 echo("</pre>");
-
+*/
 ?>

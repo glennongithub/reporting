@@ -36,7 +36,7 @@ version: "3"
 
 services:
   app:
-    container_name: app
+    container_name: reporting_app
     build:
       context: .
       args:
@@ -46,7 +46,7 @@ services:
     tty: true
     stdin_open: true
     ports:
-      - "80:80"
+      - "8080:80"
       #- "443:443"
     #platform: linux/amd64
     #environment:
