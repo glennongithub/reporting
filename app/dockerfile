@@ -1,0 +1,21 @@
+FROM ubuntu:focal
+# to use utf-8 in all python scripts by default
+ENV PYTHONIOENCODING=utf-8
+
+# to pass environment properly for Apache setup
+ARG APP_ENV
+
+# Create non root user `ubuntu` and install sudo as root, to later switch to `ubuntu` to reflect prod config.
+RUN useradd -ms /bin/bash ubuntu
+RUN apt-get update > /dev/null 2>&1 && apt-get install -y sudo
+RUN echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+USER ubuntu
+
+COPY ./resources/ /install
+
+RUN cd /install/scripts && sudo chmod +x install.sh
+RUN /install/scripts/install.sh --platform=docker 
+
+WORKDIR /docker/
+
+ENTRYPOINT sudo service apache2 restart && bash

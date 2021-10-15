@@ -1,0 +1,65 @@
+# General info: Docker-compose is a handy wrapper for docker tools.
+# **NOTE: We have another file for Linux - docker-compose.linux.yml - changes here should made there also**
+#
+# Short about process:
+# - Fetch or build required images. To build them we either build them from scratch or use already defined (BUILD phase)
+# - ENTRYPOINT is the last command - the one we want to use as main task of our container
+# - Running custom entrypoint is the FIRST command in RUN phase, that's why to track the progress we have to check logs e.g. sirvoy-docker logs app_www
+#   Custom entrypoint script has to end with the command that will last.
+
+#  Latest version of the docker-compose.yml file is 3.7, but most frequent way to specify the file version
+#  is to use integer - hence we got 3. More about file format here: https://docs.docker.com/compose/compose-file/
+version: "3"
+
+#  Our local environment is made of services - containers of certain kind.
+#  When we want to get container (think: object) from image (think: class) we can either create our own image -
+#  that's the case for `app_www` and `app_lb` (build), or use image that exists in docker hub e.g. redis (image).
+
+# Options per container are:
+# - container_name - different than service name, as container_name is on docker level, service name on docker-compose.
+#     to align that we always use `app_X` names.
+# - tty and stdin_open: allow us to access docker containers in shell and run commands in terminal
+# - build - It tells docker-compose we will need our own image. We context of this directory and dockerfile from resource
+#     file - exact script how to create this container. Also when `env_file` is used we do 2 things in same time: provide
+#     params for RUNTIME (used in entrypoint) level (more in doc) and validate that this file has to exist.
+# - ports: For each containers we should specify which ports we want to expose for outside world - either with or without
+#     mapping (host port might be exactly same or different). It's useful as e.g. we don't want to block port 80 or 443
+#     by docker container, so we use e.g. 32768 for that.
+# - expose: Expose ports, but not to host os - only for other containers.
+# - network: Our containers are connected in one network and because of that they can easily contact each other. Also we
+#     have set IP addresses for them, so they don't change.
+# - volumes: Each of our containers share nothing as default. To mount anything from host to container, you have to use
+#     volume for that. Also our volumes have modes, so it can be e.g. readonly. Delegated is one of sync modes for volumes.
+#     Get more info here: https://docs.docker.com/docker-for-mac/osxfs-caching/#delegated
+# - depends_on: We tell docker that before setting up one container, we need its dependencies first.
+# - extra_hosts: Provide hosts to the containers.
+
+services:
+  app:
+    container_name: app
+    build:
+      context: .
+      args:
+        APP_ENV: ${APP_ENV}
+      dockerfile: ./app/dockerfile 
+    # image: mysql/mysql-server:latest-aarch64
+    tty: true
+    stdin_open: true
+    ports:
+      - "80:80"
+      #- "443:443"
+    #platform: linux/amd64
+    #environment:
+    #  - MYSQL_ROOT_PASSWORD=abc123
+    #  - MYSQL_PASSWORD=abc123 #comment this line if using mariadb
+    volumes:
+      - .:/docker:rw,delegated
+    networks:
+      net:
+        ipv4_address: 192.168.22.10
+  
+networks:
+  net:
+    ipam:
+      config:
+        - subnet: 192.168.22.0/28
