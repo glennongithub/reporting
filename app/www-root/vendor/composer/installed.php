@@ -1,22 +1,22 @@
 <?php return array(
     'root' => array(
-        'pretty_version' => '1.0.0+no-version-set',
-        'version' => '1.0.0.0',
+        'pretty_version' => 'dev-master',
+        'version' => 'dev-master',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'reference' => NULL,
+        'reference' => '27b11c83460f198421a145a035dbffb857861330',
         'name' => '__root__',
         'dev' => true,
     ),
     'versions' => array(
         '__root__' => array(
-            'pretty_version' => '1.0.0+no-version-set',
-            'version' => '1.0.0.0',
+            'pretty_version' => 'dev-master',
+            'version' => 'dev-master',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
-            'reference' => NULL,
+            'reference' => '27b11c83460f198421a145a035dbffb857861330',
             'dev_requirement' => false,
         ),
         'ezyang/htmlpurifier' => array(
@@ -56,12 +56,12 @@
             'dev_requirement' => false,
         ),
         'mikehaertl/php-pdftk' => array(
-            'pretty_version' => '0.10.3',
-            'version' => '0.10.3.0',
+            'pretty_version' => '0.8.1',
+            'version' => '0.8.1.0',
             'type' => 'library',
             'install_path' => __DIR__ . '/../mikehaertl/php-pdftk',
             'aliases' => array(),
-            'reference' => '97b80fbb2ed05192d9643559b6cf82757a9cc842',
+            'reference' => '45103ccb588e7390277b7fecc13b4b28a58b13e3',
             'dev_requirement' => false,
         ),
         'mikehaertl/php-shellcommand' => array(

@@ -99,6 +99,7 @@ class ComposerStaticInitc1767b48e7585ebdd22709d7f176a426
         'C' => 
         array (
             'Complex\\' => 8,
+            'Classes\\' => 8,
         ),
     );
 
@@ -151,6 +152,10 @@ class ComposerStaticInitc1767b48e7585ebdd22709d7f176a426
         'Complex\\' => 
         array (
             0 => __DIR__ . '/..' . '/markbaker/complex/classes/src',
+        ),
+        'Classes\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/classes',
         ),
     );
 

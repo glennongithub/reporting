@@ -76,10 +76,10 @@ class Pdf
     protected $_dataFields_utf8;
 
     /**
-     * @var Pdf[]|null if the input was an instance, we keep a reference here,
-     * so that it won't get unlinked before this object gets destroyed
+     * @var Pdf|null if the input was an instance, we keep a reference here, so
+     * that it won't get unlinked before this object gets destroyed
      */
-    protected $_pdfs;
+    protected $_pdf;
 
     /**
      * @param string|Pdf|array $pdf a pdf filename or Pdf instance or an array
@@ -124,7 +124,7 @@ class Pdf
         }
         if ($name instanceof Pdf) {
             // Keep a reference to the object to prevent unlinking
-            $this->_pdfs[] = $name;
+            $this->_pdf = $name;
             if (!$name->getCommand()->getExecuted()) {
                 // @todo: Catch errors!
                 $name->execute();
@@ -153,16 +153,10 @@ class Pdf
      *      ->cat('end', 5, 'B')            // pages 5 to end of file B in reverse order
      *      ->cat(null, null, 'B', 'east')  // All pages from file B rotated by 90 degree
      *      ->saveAs('out.pdf');
-     * or
-     *  $files = ['file1.pdf', 'file2.pdf', 'file3.pdf'];
-     *  $pdf = new Pdf($files);
-     *  $pdf->cat()                         // all files, all pages
-     *      ->saveAs('out.pdf');
      *
-     * @param int|string|array|null $start the start page number or an array of page
+     * @param int|string|array $start the start page number or an array of page
      * numbers. If an array, the other arguments will be ignored. $start can
-     * also be bigger than $end for pages in reverse order. If $start is null all
-     * pages of all files will be added.
+     * also be bigger than $end for pages in reverse order.
      * @param int|string|null $end the end page number or null for single page
      * (or list if $start is an array)
      * @param string|null $handle the handle of the file to use. Can be null if
@@ -172,7 +166,7 @@ class Pdf
      * @param string $rotation the rotation to apply to the pages.
      * @return Pdf the pdf instance for method chaining
      */
-    public function cat($start = null, $end = null, $handle = null, $qualifier = null, $rotation = null)
+    public function cat($start, $end = null, $handle = null, $qualifier = null, $rotation = null)
     {
         $this->getCommand()
             ->setOperation('cat')
@@ -221,6 +215,7 @@ class Pdf
      *
      * @param string|null $filepattern the output name in sprintf format or
      * null for default 'pg_%04d.pdf'
+     * @return bool whether the burst command was successful
      * @return bool whether the burst operation was successful
      */
     public function burst($filepattern = null)
@@ -228,20 +223,6 @@ class Pdf
         $this->constrainSingleFile();
         $this->getCommand()->setOperation('burst');
         $this->_output = $filepattern === null ? 'pg_%04d.pdf' : $filepattern;
-        return $this->execute();
-    }
-
-    /**
-     * Copy all attachments from the PDF to the given directory
-     *
-     * @param string|null $dir the output directory
-     * @return bool whether the operation was successful
-     */
-    public function unpackFiles($dir = null)
-    {
-        $this->constrainSingleFile();
-        $this->getCommand()->setOperation('unpack_files');
-        $this->_output = $dir;
         return $this->execute();
     }
 
@@ -593,21 +574,14 @@ class Pdf
      * streamed inline.
      * @param bool $inline whether to force inline display of the PDF, even if
      * filename is present.
-     * @param array $headers a list of additional HTTP headers to send in the
-     * response as an array. The array keys are the header names like
-     * 'Cache-Control' and the array values the header value strings to send.
-     * Each array value can also be another array of strings if the same header
-     * should be sent multiple times. This can also be used to override
-     * automatically created headers like 'Expires' or 'Content-Length'. To suppress
-     * automatically created headers, `false` can also be used as header value.
      * @return bool whether PDF was created successfully
      */
-    public function send($filename = null, $inline = false, $headers = array())
+    public function send($filename = null, $inline = false)
     {
         if (!$this->getCommand()->getExecuted() && !$this->execute()) {
             return false;
         }
-        $this->getTmpFile()->send($filename, $this->_tmpOutputContentType, $inline, $headers);
+        $this->getTmpFile()->send($filename, $this->_tmpOutputContentType, $inline);
         return true;
     }
 
