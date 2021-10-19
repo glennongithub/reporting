@@ -43,18 +43,15 @@ $namesToIgnore = [
 
 $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
 $spreadsheet = $reader->load("xls/Manadsrapporter-2020-2022.xlsx");
-$contactListSheetData = $spreadsheet->getSheetByName('Kontaktlistan')->toArray();
+$contactListSheetData = $spreadsheet->getSheetByName('Forkunnare')->toArray();
 // $contactListSheetData[2] is the column header so lets save it as a new var with clear purpouse.
-$headerIndexMap = $contactListSheetData[2];
+$headerIndexMap = $contactListSheetData[0];
 
 // Remove bottom rows that does not contin any intesresting data
 array_splice($contactListSheetData, 105);
 
-// Remove first 2 rows. Some info about sircuitOverseer
+// Remove header row
 unset($contactListSheetData[0]);
-unset($contactListSheetData[1]);
-// Also the headr row
-unset($contactListSheetData[2]);
 /*
 echo("<pre>");
 print_r($contactListSheetData);
@@ -82,6 +79,9 @@ $fullReportArray = [];
 $publisherNames = [];
 // Now try to attach each monthly report to the correct publisher
 $i=1;
+//
+// For every publisher in contactList
+//
 foreach ($contactListSheetData as $index => $row) {
     // if we have both first and last name we also try to find it in next sheet.
     //echo ($index . " : " .$row[FIRSTNAME]." - ". $row[LASTNAME]. "- </br>");
@@ -106,10 +106,8 @@ foreach ($contactListSheetData as $index => $row) {
             // keep track of if we found a match
             $publisherFound = false;
             foreach($reportSheet as $reportRow) {
-                // For some stupid reason reportSheet is pasted on cell offset to the right .. so accout for that
-                $offset = 1;
-                if (trim($reportRow[FIRSTNAME + $offset]) === trim($row[FIRSTNAME]) && 
-                    trim($reportRow[LASTNAME + $offset]) === trim($row[LASTNAME])) {
+                if (trim($reportRow[FIRSTNAME]) === trim($row[FIRSTNAME]) && 
+                    trim($reportRow[LASTNAME]) === trim($row[LASTNAME])) {
                     // Splice up to key 17
                     array_splice($reportRow, 18);
                     $fullReportArray[$index][MONTHLY_REPORTS][] = $reportRow;
@@ -119,7 +117,7 @@ foreach ($contactListSheetData as $index => $row) {
                 }
             }
 
-            // If we found a publisher in a monthlyReportSheet that we cannot find in the contactList
+            // If we have a publisher in contactList that we cannot find in a monthlyReportSheet
             // and it is not set to ignore. 
             if (!$publisherFound && !in_array($row[FIRSTNAME]." - ". $row[LASTNAME], $namesToIgnore)) {
                 $fullReportArray['missing'][$row[FIRSTNAME]." - ". $row[LASTNAME]][] = "Coould not find " .$index . " : " .$row[FIRSTNAME]." - ". $row[LASTNAME] . " in shhet ". $reportSheetsNames[$reportsIndex];
@@ -137,9 +135,9 @@ foreach($publisherNames as $key => $name) {
     echo $key+1 . ": \t" . $name. '</br>';
 }
 
-/*
+
 echo("<pre>");
 print_r($fullReportArray);
 echo("</pre>");
-*/
+
 ?>
