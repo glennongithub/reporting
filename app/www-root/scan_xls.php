@@ -1,7 +1,10 @@
 <?php
+define('ACCESSCHECK', TRUE);
 
 require 'vendor/autoload.php';
 
+
+use Classes\GeneratePDF;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 
 const LASTNAME = 1;
@@ -89,7 +92,8 @@ foreach ($contactListSheetData as $index => $row) {
     // We need to skipp past some rows that are just mid-sheet header info
     $notLastNames = ['Efternamn', 'FÖRKUNNARE  TL', 'HJÄPPIONJÄRAR', 'TL', 'PIONJÄRAR'];
     if ($row[FIRSTNAME] && $row[LASTNAME] && !(in_array(trim($row[LASTNAME]), $notLastNames))) {
-        $publisherNames[] = $row[LASTNAME]." \t ". $row[FIRSTNAME];
+        $publisherName = $row[LASTNAME].", ". $row[FIRSTNAME];
+        $publisherNames[] = $publisherName;
         // only keep interesting columns
         array_splice($row, 21);
         // Save the publisher in fullReport
@@ -124,6 +128,16 @@ foreach ($contactListSheetData as $index => $row) {
 
             }
         }
+
+        // If we clicked to get card on this one .. generate it
+        if ($_GET['printCardFor'] == $publisherName) {
+            $formData = generateNewCardData($fullReportArray[$index]);
+            $pdf = new GeneratePdf;
+            $response = $pdf->generate($formData, $fileName);
+            ?>
+            <a href="./output/<?php echo $response;?>" download>Download it here</a>
+            <?php
+        }
     }
     
 	$i++;
@@ -132,12 +146,52 @@ foreach ($contactListSheetData as $index => $row) {
 sort($publisherNames);
 
 foreach($publisherNames as $key => $name) {
-    echo $key+1 . ": \t" . $name. '</br>';
+    $link = '<a href="scan_xls.php?printCardFor='.$name.'">Get Card</a>';
+    
+    echo $key+1 . ": \t" . $name. ' '. $link . '</br>';
 }
 
+/**
+ * Takes a array in the format we have for a publisher in kontaktlistan and 
+ * returns the dataArray nneded to fill reportCard with coresponding information 
+ * 
+ */
+function generateNewCardData($publisherArray) {
+    // Some initial data is always expected
+    $formData = [
+          'Name' => $publisherArray[LASTNAME]. ', '. $publisherArray[FIRSTNAME],
+          'Service Year' => '2021/22',
+          // Male or femail
+          'Check Box1' => trim($publisherArray[SEX]) == 'M' ? 'Yes' : 'No',
+          'Check Box2' => trim($publisherArray[SEX]) == 'K' ? 'Yes' : 'No',
+          // Anointed or other cheep
+          'Check Box3' =>'Yes',
+          // 'Check Box4' => 'No' // We have no filed in excel for anointed right now
+          'Check Box5' => trim($publisherArray[IS_ELDER]) == '1' ? 'Yes' : 'No',
+          'Check Box6' => trim($publisherArray[IS_SERVANT]) == '1' ? 'Yes' : 'No',
+          'Check Box7' => trim($publisherArray[IS_PIONEER]) == '1' ? 'Yes' : 'No',
+          'Date of birth' => trim($publisherArray[BIRTHDATE]),
+    ];
 
+    // Try to handle stupid vatying format of dates
+    //$birthDate = new \DateTime(trim($publisherArray[BIRTHDATE]));
+    //$formData['Date of birth'] = $birthDate->format('Y-m-d');
+
+    // Batism date we do not touch if we do not have one
+    /*
+    if (trim($publisherArray[BAPTIMSDATE])) {
+        $imersedDate = new \DateTime(trim($publisherArray[BAPTIMSDATE]));
+        $formData['Date immersed'] = $imersedDate->format('Y-m-d');
+    } 
+    */
+    return $formData;
+}
+
+/*
 echo("<pre>");
 print_r($fullReportArray);
 echo("</pre>");
+*/
 
 ?>
+

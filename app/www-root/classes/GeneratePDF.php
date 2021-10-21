@@ -11,12 +11,12 @@ if(!defined('ACCESSCHECK')) {
 use mikehaertl\pdftk\Pdf;
 
 class GeneratePDF {
-    public function generate($data)
+    public function generate($data, $filename)
     {      
         echo("test");
         try {
 
-            $filename = 'pdf_' . rand(2000,1200000) . '.pdf';
+            $filename = $filename ? $filename :  'pdf_' . rand(2000,1200000) . '.pdf';
 
             $pdf = new Pdf('./template_pdf/S-21_Z.pdf');
             $pdf->fillForm($data)
