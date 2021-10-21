@@ -43,7 +43,7 @@ $namesToIgnore = [
 
 $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
 $spreadsheet = $reader->load("xls/Manadsrapporter-2020-2022.xlsx");
-$contactListSheetData = $spreadsheet->getSheetByName('Forkunnare')->toArray();
+$contactListSheetData = $spreadsheet->getSheetByName('Kontaktlistan')->toArray();
 // $contactListSheetData[2] is the column header so lets save it as a new var with clear purpouse.
 $headerIndexMap = $contactListSheetData[0];
 
@@ -110,7 +110,7 @@ foreach ($contactListSheetData as $index => $row) {
                     trim($reportRow[LASTNAME]) === trim($row[LASTNAME])) {
                     // Splice up to key 17
                     array_splice($reportRow, 18);
-                    $fullReportArray[$index][MONTHLY_REPORTS][] = $reportRow;
+                    //$fullReportArray[$index][MONTHLY_REPORTS][] = $reportRow;
                     // When we find a match we can stop searching
                     $publisherFound = true;
                     break;

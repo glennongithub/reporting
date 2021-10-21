@@ -18,7 +18,7 @@ class GeneratePDF {
 
             $filename = 'pdf_' . rand(2000,1200000) . '.pdf';
 
-            $pdf = new Pdf('./template_pdf/test.pdf');
+            $pdf = new Pdf('./template_pdf/S-21_Z.pdf');
             $pdf->fillForm($data)
             //->flatten()
             ->saveAs( './output/' . $filename);

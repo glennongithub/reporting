@@ -11,7 +11,7 @@ require_once 'vendor/autoload.php';
 
 use Classes\GeneratePDF;
 
-
+/*
 $data = [
 
       'name_field' => $_POST['fname'] .' ' . $_POST['lname'],
@@ -19,7 +19,13 @@ $data = [
       'phone_field' => $_POST['phone'],
       'enquiry_field' => $_POST['enquiry']
 ];
+*/
 
+$data = [
+      'Check Box2' => 'Yes',
+      'Service Year' => '123456',
+      'RemarksJanuary' => 'Some test'
+];
 
 $pdf = new GeneratePdf;
 $response = $pdf->generate($data);

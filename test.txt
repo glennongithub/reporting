@@ -1,0 +1,2 @@
+sudo apt-get -y install acl apache2 libapache2-mod-php libapache2-mod-security2 php php-apcu php-curl php-gd php-intl php-imap php-mysql php-mbstring  php-soap php-xml php-zip php-bcmath git unzip libwww-perl libdatetime-perl python mc htop mysql-client
+sudo ln -fs / /etc/localtime
