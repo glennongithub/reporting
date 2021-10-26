@@ -14,9 +14,15 @@ class ReportCardPdf {
 
     public $publisherFormData;
 
+    private $firstServiceYearStartYear;
+
     public $filename;
 
     public function __construct() {
+        // Possibly construct a object from existing file.
+        // that matches the name passed.
+
+
 
     }
 
@@ -40,20 +46,60 @@ class ReportCardPdf {
         {
             return $e->getMessage();
         }
+    }
 
+    /**
+     * Expects service year in format "2020/21" or "2020"
+     * 
+     * 
+     */
+    public function setFirstServiceYear(string $serviceYear) {
+        // Make sure it is a proper year before "/"
+        [$leftSide, $rightSide] = explode('/' , $serviceYear);
+        $format = 'Y';
+        $yearForFirstHalf = \DateTime::createFromFormat($format, $leftSide);
+        // Die if no year found
+
+        // If not died yet set it on instance for future calculations
+        $this->firstServiceYearStartYear = clone $yearForFirstHalf;
+        $yearForSecondHalf = clone $yearForFirstHalf;
+        $yearForSecondHalf->modify('+ 1year');
+        $serviceYearString = $yearForFirstHalf->format('Y') . '/' . $yearForSecondHalf->format('y');
+
+        $this->publisherFormData = [
+            'Service Year' => $serviceYearString,
+        ];
 
     }
 
     /**
      * Add report-row for table 1 or 2 and the name of month
      */
-    public function addReportRow($tableNr, $monthName, $reportRow) {
+    public function addReportRow($yearAndMonth, $reportRow) {
         // {table_nr}-Place_{row_nr}  row nr is 1 = september since that is first of the service year
         // So I need some logical way to manage that.. 
         // Maybe actually just use year and moth instead of tableNr and month .. 
         // Then make sure that reportCard have a property that say what service year the card is starting at
-        // and figure out if the given onth is insode that .. or not and place it properly
+        if (!$this->firstServiceYearStartYear instanceof \DateTime) {
+            throw new Exception('Cannot add report-row when first serviceYear startYear is not configured');
+        }
+
+        // and figure out if the given month is inside that .. or not and place it properly
         // If it is not withing what a 2 sided report card can handle .. we throw error
+
+        // If have not died we have a start year and know min and max month this card can handle
+        // Min month is september of firstStartYear
+        $minMonth = new \DateTime($this->firstServiceYearStartYear->format('Y') . '-09-01' );
+
+        // Maxmonth is +23 months.
+        $maxMonth = clone $minMonth;
+        $maxMonth->modify('+23 month');
+
+        echo($minMonth->format('Y-m') . '/' . $maxMonth->format('Y-m'));
+
+
+
+
 
         $this->publisherFormData["${tableNr}-Place_1"] = '2';
         return $this;
@@ -68,7 +114,6 @@ class ReportCardPdf {
         // Some initial data is always expected
         $publisherFormData = [
             'Name' => $publisherArray[LASTNAME]. ', '. $publisherArray[FIRSTNAME],
-            'Service Year' => '2021/22',
             // Male or femail
             'Check Box1' => trim($publisherArray[SEX]) == 'M' ? 'Yes' : 'No',
             'Check Box2' => trim($publisherArray[SEX]) == 'K' ? 'Yes' : 'No',

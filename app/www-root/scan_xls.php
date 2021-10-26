@@ -143,6 +143,7 @@ foreach($publisherNames as $key => $name) {
     if ($_GET['printCardFor'] == $name) {
         $reportCard = new ReportCardPdf;
         $reportCard->generateNewCardData($fullReportArray[$key]);
+        $reportCard->setFirstServiceYear('2020/21');
         $reportCard->addReportRow(1, null, null);
 
         // Use publishername as filename
@@ -155,6 +156,8 @@ foreach($publisherNames as $key => $name) {
     echo $key+1 . ": \t" . $name. ' '. $link . ' '. $getCardLink. '</br>';
 
 }
+
+
 
 
 echo("<pre>");
