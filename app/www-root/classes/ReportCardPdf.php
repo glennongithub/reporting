@@ -74,18 +74,19 @@ class ReportCardPdf {
 
     /**
      * Add report-row for table 1 or 2 and the name of month
+     * $yearAndMonth passed to this function should be created by
+     * \DateTime::createFromFormat('Y-m', 'XXXX-mm')
      */
-    public function addReportRow($yearAndMonth, $reportRow) {
+    public function addReportRow(\DateTime $yearAndMonth, $reportRow) {
         // {table_nr}-Place_{row_nr}  row nr is 1 = september since that is first of the service year
-        // So I need some logical way to manage that.. 
-        // Maybe actually just use year and moth instead of tableNr and month .. 
-        // Then make sure that reportCard have a property that say what service year the card is starting at
+        
+        // Validate all used data
         if (!$this->firstServiceYearStartYear instanceof \DateTime) {
-            throw new Exception('Cannot add report-row when first serviceYear startYear is not configured');
+            throw new \Exception('Cannot add report-row when first serviceYear startYear is not configured');
         }
-
-        // and figure out if the given month is inside that .. or not and place it properly
-        // If it is not withing what a 2 sided report card can handle .. we throw error
+        if (!$yearAndMonth instanceof \DateTime) {
+            throw new \ Exception('Cannot add report-row. Passed yearAndMonth is not a proper DateTime');
+        }
 
         // If have not died we have a start year and know min and max month this card can handle
         // Min month is september of firstStartYear
@@ -93,15 +94,37 @@ class ReportCardPdf {
 
         // Maxmonth is +23 months.
         $maxMonth = clone $minMonth;
-        $maxMonth->modify('+23 month');
+        $maxMonth->modify('+23 month')->modify('+1 day');
+        // Adding one hour extra since below test will somehow see yearAndMonth as bigger thatmaxMonth if they are on same month
 
-        echo($minMonth->format('Y-m') . '/' . $maxMonth->format('Y-m'));
+        // Is given month is inside that .. or not and place it properly
+        // If it is not withing what a 2 sided report card can handle .. we throw error
 
+        if ($yearAndMonth > $maxMonth || $yearAndMonth < $minMonth) {
+            throw new \Exception('Cannot add report-row. yearAndMonth (' . $yearAndMonth->format('Y-m-d') . ') is not within range for this reportCard:' . $minMonth->format('Y-m-d') . '/' . $maxMonth->format('Y-m-d'));
+        }
 
+        // Get months between start of page 1 service year and incomming row
+        $diff = $minMonth->diff($yearAndMonth);
+        // Row-nr bellow first row (sept of firstPage)
+        $monthsDiff = ($diff->format('%y') * 12) + $diff->format('%m');
+        $rowNrToAdd = $monthsDiff +1; // no diff means 0 but first row has id 1 .. so +1
+        // Assume tableNr = 1 (first page)
+        $tableNr = 1;
+        // then we have 2 pages .. (2 serviceYears) so use modulus operator to get reminder if higher than 12
+        if ($rowNrToAdd > 12) {
+            // We know we must be on table 2
+            $tableNr = 2;
+            $rowNrToAdd = $rowNrToAdd % 12;
+            // If the rest is nothing .. we are on 12th row .. we handle that.
+            $rowNrToAdd = ($rowNrToAdd == 0) ? 12 : $rowNrToAdd;
 
+        }
 
+        echo($minMonth->format('Y-m') . '/' . $maxMonth->format('Y-m') . 'Use table: ' . $tableNr . '  row ' .$rowNrToAdd);
 
-        $this->publisherFormData["${tableNr}-Place_1"] = '2';
+        $this->publisherFormData["${tableNr}-Place_${rowNrToAdd}"] = '2';
+
         return $this;
     }
 
@@ -126,10 +149,15 @@ class ReportCardPdf {
             'Date of birth' => trim($publisherArray[BIRTHDATE]),
         ];
 
-        // Try to handle stupid vatying format of dates
-        //$birthDate = new \DateTime(trim($publisherArray[BIRTHDATE]));
-        //$formData['Date of birth'] = $birthDate->format('Y-m-d');
-
+        // Birthdate should not be missing but .. still it might
+        if (trim($publisherArray[BIRTHDATE])) {
+            //$birthDate = new \DateTime(trim($publisherArray[BIRTHDATE]));
+            //$formData['Date of birth'] = $birthDate->format('Y-m-d');
+            // Wa want to do something like above .. but we need to fix contac-list first
+            // Untill then .. just set string as is
+            $formData['Date of birth'] = trim($publisherArray[BIRTHDATE]);
+        }
+        
         // Batism date we do not touch if we do not have one
         if (trim($publisherArray[BAPTIMSDATE])) {
             // Wait untill we have all dates in same format untill we try to perform this stunt

@@ -29,6 +29,22 @@ const POSTCODE = 19;
 const DIV = 20;
 const MONTHLY_REPORTS = 'monthy_reports';
 
+const SHEET_NAME_TO_MONTH = [
+    'SEPTEMBER 20' => '2020-09',
+    'OKTOBER 20' => '2020-10',
+    'NOVEMBER 20' => '2020-11',
+    'December -20' => '2020-12',
+    'Januari -21' => '2021-01',
+    'Februari -21' => '2021-02',
+    'Mars -21' => '2021-03',
+    'April -21' => '2021-04',
+    'Maj -21' => '2021-05',
+    'Juni -21' => '2021-06',
+    'Juli -21' => '2021-07',
+    'Augusti -21' => '2021-08',
+    'September-21' => '2021-09',
+];
+
 // Manually creating a array of publishers that exists in the contact list .. but not on all reportsSheets
 // due to no longer in our cong. (No need to keep registercards)
 $namesToIgnore = [
@@ -68,11 +84,9 @@ $contactListSheetData['missing'] = [];
 
 // Now load data from all shhets with monthly report-data
 $reportSheets = [];
-$reportSheetsNames = [];
 foreach ($spreadsheet->getSheetNames() as $sheetName) {
-    if (!in_array($sheetName, ['Kontaktlistan', 'Oktober-21'])) {
-        $reportSheets[] = $spreadsheet->getSheetByName($sheetName)->toArray();
-        $reportSheetsNames[] = $sheetName;
+    if (!in_array($sheetName, ['Kontaktlistan', 'Forkunnare', 'Oktober-21'])) {
+        $reportSheets[$sheetName] = $spreadsheet->getSheetByName($sheetName)->toArray();
     }
      
 }
@@ -114,7 +128,9 @@ foreach ($contactListSheetData as $index => $row) {
                     trim($reportRow[LASTNAME]) === trim($row[LASTNAME])) {
                     // Splice up to key 17
                     array_splice($reportRow, 18);
-                    //$fullReportArray[$index][MONTHLY_REPORTS][] = $reportRow;
+                    $reportRow['month'] = SHEET_NAME_TO_MONTH[$reportsIndex];
+                    echo($reportsIndex . " " .$reportRow['month'].  "<br>");
+                    $fullReportArray[$index][MONTHLY_REPORTS][] = $reportRow;
                     // When we find a match we can stop searching
                     $publisherFound = true;
                     break;
@@ -124,7 +140,7 @@ foreach ($contactListSheetData as $index => $row) {
             // If we have a publisher in contactList that we cannot find in a monthlyReportSheet
             // and it is not set to ignore. 
             if (!$publisherFound && !in_array($row[FIRSTNAME]." - ". $row[LASTNAME], $namesToIgnore)) {
-                $fullReportArray['missing'][$row[FIRSTNAME]." - ". $row[LASTNAME]][] = "Coould not find " .$index . " : " .$row[FIRSTNAME]." - ". $row[LASTNAME] . " in shhet ". $reportSheetsNames[$reportsIndex];
+                $fullReportArray['missing'][$row[FIRSTNAME]." - ". $row[LASTNAME]][] = "Coould not find " .$index . " : " .$row[FIRSTNAME]." - ". $row[LASTNAME] . " in shhet ". $reportsIndex;
 
             }
         }
@@ -144,7 +160,13 @@ foreach($publisherNames as $key => $name) {
         $reportCard = new ReportCardPdf;
         $reportCard->generateNewCardData($fullReportArray[$key]);
         $reportCard->setFirstServiceYear('2020/21');
-        $reportCard->addReportRow(1, null, null);
+
+        foreach ($fullReportArray[$key][MONTHLY_REPORTS] as $reportRow) {
+            echo("test- " .$reportRow['month'] . '-01' . "-test");
+            $reportCard->addReportRow(\DateTime::createFromFormat('Y-n-d', $reportRow['month'] . '-01'), null);   
+        }
+
+        $reportCard->addReportRow(\DateTime::createFromFormat('Y-n-d', '2022-08-01'), null);
 
         // Use publishername as filename
         $filename = $reportCard->generatePdfFile($name)->getFilename();
