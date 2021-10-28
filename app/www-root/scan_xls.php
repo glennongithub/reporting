@@ -29,6 +29,32 @@ const POSTCODE = 19;
 const DIV = 20;
 const MONTHLY_REPORTS = 'monthy_reports';
 
+// Column-nr for each datafiled needed in a monthly report-row
+const PLACE_COL_NR = 9;
+const VIDEO_COL_NR = 10;
+const HOURS_COL_NR = 11;
+const RV_COL_NR = 12;
+const STUDIES_COL_NR = 13;
+const AUX_PIONEER_THIS_MONTH_COL_NR = 15;
+const REMARKS_COL_NR = 16;
+
+// ServiceYear start in Sept so that is why this looks strange
+const MONTH_NAMES_FOR_REMARKS = [
+    1 => 'September',
+    2 => 'Oktober',
+    3 => 'November',
+    4 => 'December',
+    5 => 'January',
+    6 => 'February',
+    7 => 'March',
+    8 => 'April',
+    9 => 'May',
+    10 => 'June',
+    11 => 'July',
+    12 => 'August',
+];
+
+
 const SHEET_NAME_TO_MONTH = [
     'SEPTEMBER 20' => '2020-09',
     'OKTOBER 20' => '2020-10',
@@ -77,10 +103,8 @@ print_r($contactListSheetData);
 echo("</pre>");
 */
 
-// print_r($spreadsheet->getSheetNames());
-unset($sheetNames[0]); // Konaktlistan
-// Add a extra key where we can tack on publisher we find in reportSheets but we do not have in Kontaktlistam
-$contactListSheetData['missing'] = [];
+// Keep track of publisher we find in reportSheets but we do not have in Kontaktlistam
+$missing = [];
 
 // Now load data from all shhets with monthly report-data
 $reportSheets = [];
@@ -129,7 +153,7 @@ foreach ($contactListSheetData as $index => $row) {
                     // Splice up to key 17
                     array_splice($reportRow, 18);
                     $reportRow['month'] = SHEET_NAME_TO_MONTH[$reportsIndex];
-                    echo($reportsIndex . " " .$reportRow['month'].  "<br>");
+                    // echo($reportsIndex . " " .$reportRow['month'].  "<br>");
                     $fullReportArray[$index][MONTHLY_REPORTS][] = $reportRow;
                     // When we find a match we can stop searching
                     $publisherFound = true;
@@ -140,7 +164,7 @@ foreach ($contactListSheetData as $index => $row) {
             // If we have a publisher in contactList that we cannot find in a monthlyReportSheet
             // and it is not set to ignore. 
             if (!$publisherFound && !in_array($row[FIRSTNAME]." - ". $row[LASTNAME], $namesToIgnore)) {
-                $fullReportArray['missing'][$row[FIRSTNAME]." - ". $row[LASTNAME]][] = "Coould not find " .$index . " : " .$row[FIRSTNAME]." - ". $row[LASTNAME] . " in shhet ". $reportsIndex;
+                $missing[] = "Coould not find " .$index . " : " .$row[FIRSTNAME]." - ". $row[LASTNAME] . " in shhet ". $reportsIndex;
 
             }
         }
@@ -162,28 +186,29 @@ foreach($publisherNames as $key => $name) {
         $reportCard->setFirstServiceYear('2020/21');
 
         foreach ($fullReportArray[$key][MONTHLY_REPORTS] as $reportRow) {
-            echo("test- " .$reportRow['month'] . '-01' . "-test");
-            $reportCard->addReportRow(\DateTime::createFromFormat('Y-n-d', $reportRow['month'] . '-01'), null);   
+            $reportCard->addReportRow(\DateTime::createFromFormat('Y-n-d', $reportRow['month'] . '-01'), $reportRow);   
         }
 
-        $reportCard->addReportRow(\DateTime::createFromFormat('Y-n-d', '2022-08-01'), null);
-
+        // FIXME .. we could potentially use $fullReportArray[$key][CURRENT_GO] as part of file-name to easily separate groups.
         // Use publishername as filename
         $filename = $reportCard->generatePdfFile($name)->getFilename();
     
         $getCardLink = '<a href="./output/' . $filename . '" download>Download it here</a>';
+        echo("<pre>");
+        // print_r($fullReportArray[$key]);
+        echo("</pre>");
         
     }
 
     echo $key+1 . ": \t" . $name. ' '. $link . ' '. $getCardLink. '</br>';
-
 }
 
 
 
 
 echo("<pre>");
-print_r($fullReportArray);
+//print_r($fullReportArray);
+print_r($missing);
 echo("</pre>");
 
 

@@ -50,7 +50,8 @@ class ReportCardPdf {
 
     /**
      * Expects service year in format "2020/21" or "2020"
-     * 
+     * Setts $this->firstServiceYearStartYear so we can use it for calculations for what rownomber a report should go to
+     * But also sets formData for both page 1 and 2
      * 
      */
     public function setFirstServiceYear(string $serviceYear) {
@@ -62,14 +63,19 @@ class ReportCardPdf {
 
         // If not died yet set it on instance for future calculations
         $this->firstServiceYearStartYear = clone $yearForFirstHalf;
+        
+        // Prepare data to fill form page 1
         $yearForSecondHalf = clone $yearForFirstHalf;
         $yearForSecondHalf->modify('+ 1year');
         $serviceYearString = $yearForFirstHalf->format('Y') . '/' . $yearForSecondHalf->format('y');
 
-        $this->publisherFormData = [
-            'Service Year' => $serviceYearString,
-        ];
+        // and page2
+        $page2yearForSecondHalf = clone $yearForSecondHalf;
+        $page2yearForSecondHalf->modify('+ 1year');
+        $page2ServiceYearString = $yearForSecondHalf->format('Y') . '/' . $page2yearForSecondHalf->format('y');
 
+        $this->publisherFormData['Service Year'] = $serviceYearString;
+        $this->publisherFormData['Service Year_2'] = $page2ServiceYearString;
     }
 
     /**
@@ -120,10 +126,39 @@ class ReportCardPdf {
             $rowNrToAdd = ($rowNrToAdd == 0) ? 12 : $rowNrToAdd;
 
         }
+        if ($reportRow[PLACE_COL_NR]) {
+            $this->publisherFormData["${tableNr}-Place_${rowNrToAdd}"] = $reportRow[PLACE_COL_NR];
+        }
+        
+        if ($reportRow[VIDEO_COL_NR]) {
+            $this->publisherFormData["${tableNr}-Video_${rowNrToAdd}"] = $reportRow[VIDEO_COL_NR];  
+        }
+        
+        if ($reportRow[HOURS_COL_NR]) {
+            $this->publisherFormData["${tableNr}-Hours_${rowNrToAdd}"] = $reportRow[HOURS_COL_NR];
+        }
+        
+        if ($reportRow[RV_COL_NR]) {
+            $this->publisherFormData["${tableNr}-RV_${rowNrToAdd}"] = $reportRow[RV_COL_NR];
+        }
+        
+        if ($reportRow[STUDIES_COL_NR]) {
+            $this->publisherFormData["${tableNr}-Studies_${rowNrToAdd}"] = $reportRow[STUDIES_COL_NR];
+        }
+        
 
-        echo($minMonth->format('Y-m') . '/' . $maxMonth->format('Y-m') . 'Use table: ' . $tableNr . '  row ' .$rowNrToAdd);
+        // On page two, these formField have the extrension _2
+        $remarksFormFieldName = 'Remarks' . MONTH_NAMES_FOR_REMARKS[$rowNrToAdd] . (($tableNr === 2)? '_2' : '');
+        
+        // ADD 'HP + other remark
+        $remarkValue = ($reportRow[AUX_PIONEER_THIS_MONTH_COL_NR] == 1) ? 'HP' : '';
+        // if remark is x .. we just filter it .. seam to be used to bark done or something during input of data I guess
 
-        $this->publisherFormData["${tableNr}-Place_${rowNrToAdd}"] = '2';
+        $remarkValue .= (strtolower(trim($reportRow[REMARKS_COL_NR])) !== 'x') ? ' '. $reportRow[REMARKS_COL_NR] : '';
+
+        if ($remarkValue) {
+            $this->publisherFormData[$remarksFormFieldName] = $remarkValue;
+        }
 
         return $this;
     }
@@ -135,19 +170,17 @@ class ReportCardPdf {
      */
     public function generateNewCardData($publisherArray) {
         // Some initial data is always expected
-        $publisherFormData = [
-            'Name' => $publisherArray[LASTNAME]. ', '. $publisherArray[FIRSTNAME],
-            // Male or femail
-            'Check Box1' => trim($publisherArray[SEX]) == 'M' ? 'Yes' : 'No',
-            'Check Box2' => trim($publisherArray[SEX]) == 'K' ? 'Yes' : 'No',
-            // Anointed or other cheep
-            'Check Box3' =>'Yes',
-            // 'Check Box4' => 'No' // We have no filed in excel for anointed right now
-            'Check Box5' => trim($publisherArray[IS_ELDER]) == '1' ? 'Yes' : 'No',
-            'Check Box6' => trim($publisherArray[IS_SERVANT]) == '1' ? 'Yes' : 'No',
-            'Check Box7' => trim($publisherArray[IS_PIONEER]) == '1' ? 'Yes' : 'No',
-            'Date of birth' => trim($publisherArray[BIRTHDATE]),
-        ];
+        $this->publisherFormData['Name'] = $publisherArray[LASTNAME]. ', '. $publisherArray[FIRSTNAME];
+        // Male or femail
+        $this->publisherFormData['Check Box1'] = trim($publisherArray[SEX]) == 'M' ? 'Yes' : 'No';
+        $this->publisherFormData['Check Box2'] = trim($publisherArray[SEX]) == 'K' ? 'Yes' : 'No';
+        // Anointed or other cheep
+        $this->publisherFormData['Check Box3'] ='Yes';
+        // 'Check Box4' => 'No' // We have no filed in excel for anointed right now
+        $this->publisherFormData['Check Box5'] = trim($publisherArray[IS_ELDER]) == '1' ? 'Yes' : 'No';
+        $this->publisherFormData['Check Box6'] = trim($publisherArray[IS_SERVANT]) == '1' ? 'Yes' : 'No';
+        $this->publisherFormData['Check Box7'] = trim($publisherArray[IS_PIONEER]) == '1' ? 'Yes' : 'No';
+        $this->publisherFormData['Date of birth'] = trim($publisherArray[BIRTHDATE]);
 
         // Birthdate should not be missing but .. still it might
         if (trim($publisherArray[BIRTHDATE])) {
@@ -155,7 +188,7 @@ class ReportCardPdf {
             //$formData['Date of birth'] = $birthDate->format('Y-m-d');
             // Wa want to do something like above .. but we need to fix contac-list first
             // Untill then .. just set string as is
-            $formData['Date of birth'] = trim($publisherArray[BIRTHDATE]);
+            $this->publisherFormData['Date of birth'] = trim($publisherArray[BIRTHDATE]);
         }
         
         // Batism date we do not touch if we do not have one
@@ -165,9 +198,9 @@ class ReportCardPdf {
             //$formData['Date immersed'] = $imersedDate->format('Y-m-d');
 
             // Until fixed we just input it as is
-            $publisherFormData['Date immersed'] = trim($publisherArray[BAPTIMSDATE]);
+            $this->publisherFormData['Date immersed'] = trim($publisherArray[BAPTIMSDATE]);
         }
-        $this->publisherFormData = $publisherFormData;
+    
         return $this;
     }
 
