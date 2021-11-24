@@ -69,6 +69,7 @@ const SHEET_NAME_TO_MONTH = [
     'Juli -21' => '2021-07',
     'Augusti -21' => '2021-08',
     'September-21' => '2021-09',
+    'Oktober-21' => '2021-10',
 ];
 
 // Manually creating a array of publishers that exists in the contact list .. but not on all reportsSheets
@@ -109,7 +110,7 @@ $missing = [];
 // Now load data from all shhets with monthly report-data
 $reportSheets = [];
 foreach ($spreadsheet->getSheetNames() as $sheetName) {
-    if (!in_array($sheetName, ['Kontaktlistan', 'Forkunnare', 'Oktober-21'])) {
+    if (!in_array($sheetName, ['Kontaktlistan', 'Forkunnare'])) {
         $reportSheets[$sheetName] = $spreadsheet->getSheetByName($sheetName)->toArray();
     }
      
@@ -180,7 +181,7 @@ foreach($publisherNames as $key => $name) {
     $link = '<a href="scan_xls.php?printCardFor='.$name.'">Get Card</a>';
 
     // If we clicked to get card on this one .. generate it
-    if ($_GET['printCardFor'] == $name) {
+    if ($_GET['printCardFor'] == $name || $_GET['printCardFor'] == 'all') {
         $reportCard = new ReportCardPdf;
         $reportCard->generateNewCardData($fullReportArray[$key]);
         $reportCard->setFirstServiceYear('2020/21');
@@ -193,7 +194,13 @@ foreach($publisherNames as $key => $name) {
         // Use publishername as filename
         $filename = $reportCard->generatePdfFile($name)->getFilename();
     
-        $getCardLink = '<a href="./output/' . $filename . '" download>Download it here</a>';
+        if ($_GET['printCardFor'] != 'all')
+        {
+            // for now .. just dont print it .. 
+            // FIXME make this a download for all files as a zip-file
+            $getCardLink = '<a href="./output/' . $filename . '" download>Download it here</a>';
+        }
+        
         echo("<pre>");
         // print_r($fullReportArray[$key]);
         echo("</pre>");
