@@ -70,6 +70,16 @@ const SHEET_NAME_TO_MONTH = [
     'Augusti -21' => '2021-08',
     'September-21' => '2021-09',
     'Oktober-21' => '2021-10',
+    'November-21' => '2021-11',
+    'December-21' => '2021-12',
+    'Januari-22' => '2022-01',
+    'Februari-22' => '2022-02',
+    'Mars-22' => '2022-03',
+    'April-22' => '2022-04',
+    'Maj-22' => '2022-05',
+    'Juni-22' => '2022-06',
+    'Juli-22' => '2022-07',
+    'Augusti-22' => '2022-08',
 ];
 
 // Manually creating a array of publishers that exists in the contact list .. but not on all reportsSheets
@@ -84,7 +94,9 @@ $namesToIgnore = [
     'Bengt - Nilsson',
     'Maja-Leena - Nilsson',
     'Ulf - Nilsson',
-    'Bertil - Pettersson'
+    'Bertil - Pettersson',
+    'Anna-Greta - Pettersson',
+    'Bengt - Löthman',
 ];
 
 $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();

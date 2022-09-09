@@ -30,13 +30,13 @@ class ReportCardPdf {
     {      
         try {
 
-            $filename = $filename ? $filename :  'pdf_' . rand(2000,1200000) . '.pdf';
+            $filename = $filename ? $filename . '.pdf' :  'pdf_' . rand(2000,1200000) . '.pdf';
 
             $pdf = new Pdf('./template_pdf/S-21_Z.pdf');
             $pdf->fillForm($this->publisherFormData)
             //->flatten()
             ->saveAs( './output/' . $filename);
-            //->send( $filename . '.pdf');
+            //->send( $filename);
 
             $this->filename = $filename;
             return $this;
@@ -151,9 +151,20 @@ class ReportCardPdf {
         $remarksFormFieldName = 'Remarks' . MONTH_NAMES_FOR_REMARKS[$rowNrToAdd] . (($tableNr === 2)? '_2' : '');
         
         // ADD 'HP + other remark
-        $remarkValue = ($reportRow[AUX_PIONEER_THIS_MONTH_COL_NR] == 1) ? 'HP' : '';
-        // if remark is x .. we just filter it .. seam to be used to bark done or something during input of data I guess
+        // This is not consistently used . sometimes a 1 is representing that publisher is HP . sometimes the strin HP sometimes there are ather notes in the same field
+        $valueFromHPCol = $reportRow[AUX_PIONEER_THIS_MONTH_COL_NR];
 
+        // If anything at all i written in this col we assume HP is true.
+        $isHp = trim($valueFromHPCol) !== '';
+
+        // Remove parts of the string we can think of that is only there to indicate HP is true
+        $valueFromHPCol = str_ireplace(['1', 'HP', 'x'], '', $valueFromHPCol);
+
+        // Now add any part that is left of the content from HPCol but prepend it with HP if we decided that that was the case above
+        $remarkValue = ($isHp ? 'HP' : '') . $valueFromHPCol;
+        
+        
+        // if remark is x .. we just filter it .. seam to be used to bark done or something during input of data I guess
         $remarkValue .= (strtolower(trim($reportRow[REMARKS_COL_NR])) !== 'x') ? ' '. $reportRow[REMARKS_COL_NR] : '';
 
         if ($remarkValue) {
