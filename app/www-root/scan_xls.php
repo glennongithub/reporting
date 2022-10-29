@@ -56,18 +56,6 @@ const MONTH_NAMES_FOR_REMARKS = [
 
 
 const SHEET_NAME_TO_MONTH = [
-    'SEPTEMBER 20' => '2020-09',
-    'OKTOBER 20' => '2020-10',
-    'NOVEMBER 20' => '2020-11',
-    'December -20' => '2020-12',
-    'Januari -21' => '2021-01',
-    'Februari -21' => '2021-02',
-    'Mars -21' => '2021-03',
-    'April -21' => '2021-04',
-    'Maj -21' => '2021-05',
-    'Juni -21' => '2021-06',
-    'Juli -21' => '2021-07',
-    'Augusti -21' => '2021-08',
     'September-21' => '2021-09',
     'Oktober-21' => '2021-10',
     'November-21' => '2021-11',
@@ -80,6 +68,7 @@ const SHEET_NAME_TO_MONTH = [
     'Juni-22' => '2022-06',
     'Juli-22' => '2022-07',
     'Augusti-22' => '2022-08',
+    'September-22' => '2022-09',
 ];
 
 // Manually creating a array of publishers that exists in the contact list .. but not on all reportsSheets
@@ -196,11 +185,13 @@ foreach($publisherNames as $key => $name) {
     if ($_GET['printCardFor'] == $name || $_GET['printCardFor'] == 'all') {
         $reportCard = new ReportCardPdf;
         $reportCard->generateNewCardData($fullReportArray[$key]);
-        $reportCard->setFirstServiceYear('2020/21');
+        $reportCard->setFirstServiceYear('2021/22');
 
         foreach ($fullReportArray[$key][MONTHLY_REPORTS] as $reportRow) {
-            $reportCard->addReportRow(\DateTime::createFromFormat('Y-n-d', $reportRow['month'] . '-01'), $reportRow);   
+            $reportCard->addReportRow($reportRow);   
         }
+
+        $reportCard->generateTotalsAndAverage($fullReportArray[$key][MONTHLY_REPORTS] );
 
         // FIXME .. we could potentially use $fullReportArray[$key][CURRENT_GO] as part of file-name to easily separate groups.
         // Use publishername as filename

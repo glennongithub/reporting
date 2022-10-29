@@ -61,6 +61,8 @@ class ReportCardPdf {
         $yearForFirstHalf = \DateTime::createFromFormat($format, $leftSide);
         // Die if no year found
 
+        print_r($yearForFirstHalf);
+
         // If not died yet set it on instance for future calculations
         $this->firstServiceYearStartYear = clone $yearForFirstHalf;
         
@@ -80,16 +82,17 @@ class ReportCardPdf {
 
     /**
      * Add report-row for table 1 or 2 and the name of month
-     * $yearAndMonth passed to this function should be created by
-     * \DateTime::createFromFormat('Y-m', 'XXXX-mm')
      */
-    public function addReportRow(\DateTime $yearAndMonth, $reportRow) {
+    public function addReportRow($reportRow) {
         // {table_nr}-Place_{row_nr}  row nr is 1 = september since that is first of the service year
         
         // Validate all used data
         if (!$this->firstServiceYearStartYear instanceof \DateTime) {
             throw new \Exception('Cannot add report-row when first serviceYear startYear is not configured');
         }
+
+        $yearAndMonth = \DateTime::createFromFormat('Y-n-d', $reportRow['month'] . '-01');
+
         if (!$yearAndMonth instanceof \DateTime) {
             throw new \ Exception('Cannot add report-row. Passed yearAndMonth is not a proper DateTime');
         }
@@ -172,6 +175,134 @@ class ReportCardPdf {
         }
 
         return $this;
+    }
+
+    public function generateTotalsAndAverage($monthlyReports) {
+        
+        // Using field constants as indexes to easily loop through them later
+
+        $page1RowCount = 0;
+        $page1Totals = [
+            PLACE_COL_NR => 0,
+            VIDEO_COL_NR => 0,
+            HOURS_COL_NR => 0,
+            RV_COL_NR => 0,
+            STUDIES_COL_NR => 0,
+
+        ];
+
+        $page2RowCount = 0;
+        $page2Totals = [
+            PLACE_COL_NR => 0,
+            VIDEO_COL_NR => 0,
+            HOURS_COL_NR => 0,
+            RV_COL_NR => 0,
+            STUDIES_COL_NR => 0,
+
+        ];
+        
+        foreach ($monthlyReports as $reportRow) {
+            $yearAndMonth = \DateTime::createFromFormat('Y-n-d', $reportRow['month'] . '-01');
+
+            // Do exactly same tests as when we add singleRow to reportCard
+
+            // Min month is september of firstStartYear
+            $minMonth = new \DateTime($this->firstServiceYearStartYear->format('Y') . '-09-01' );
+
+            // Maxmonth is +23 months.
+            $maxMonth = clone $minMonth;
+            $maxMonth->modify('+23 month')->modify('+1 day');
+            // Adding one hour extra since below test will somehow see yearAndMonth as bigger thatmaxMonth if they are on same month
+
+            // Is given month is inside that .. or not and place it properly
+            // If it is not withing what a 2 sided report card can handle .. we throw error
+
+            if ($yearAndMonth > $maxMonth || $yearAndMonth < $minMonth) {
+                throw new \Exception('Cannot add report-row. yearAndMonth (' . $yearAndMonth->format('Y-m-d') . ') is not within range for this reportCard:' . $minMonth->format('Y-m-d') . '/' . $maxMonth->format('Y-m-d'));
+            }
+
+            // Get months between start of page 1 service year and incomming row
+            $diff = $minMonth->diff($yearAndMonth);
+            // Row-nr bellow first row (sept of firstPage)
+            $monthsDiff = ($diff->format('%y') * 12) + $diff->format('%m');
+            $rowNrToAdd = $monthsDiff +1; // no diff means 0 but first row has id 1 .. so +1
+            // Assume tableNr = 1 (first page)
+            $tableNr = 1;
+            // then we have 2 pages .. (2 serviceYears) so use modulus operator to get reminder if higher than 12
+            if ($rowNrToAdd > 12) {
+                // We know we must be on table 2
+                $tableNr = 2;
+                $rowNrToAdd = $rowNrToAdd % 12;
+                // If the rest is nothing .. we are on 12th row .. we handle that.
+                $rowNrToAdd = ($rowNrToAdd == 0) ? 12 : $rowNrToAdd;
+            }
+
+            // We do not really need the rowNrToAdd but lets keep it for now untill we see if we might need it for some other purpouse
+
+            // Now just sum up the totals and how many rows we worked through so we also can get average.
+
+            if ($tableNr == 1) {
+                // inc rouw count
+                $page1RowCount += 1;
+
+                // sum to each field
+                foreach ($page1Totals as $fieldIndex => $sum) {
+                    $page1Totals[$fieldIndex] += $reportRow[$fieldIndex];
+                }
+
+            }
+
+            if ($tableNr == 2) {
+                // inc rouw count
+                $page2RowCount += 1;
+
+                // sum to each field
+                foreach ($page2Totals as $fieldIndex => $sum) {
+                    $page2Totals[$fieldIndex] += $reportRow[$fieldIndex];
+                }
+
+            }
+        }
+
+        // All rows looped so we have total and nr of rows on each page
+        // Calculate the average and write values to corresponding fields in pdf
+
+        if (count($page1RowCount) > 0) {
+          
+            $this->publisherFormData["1-Place_Total"] = $page1Totals[PLACE_COL_NR];
+            $this->publisherFormData["1-Place_Average"] = number_format($page1Totals[PLACE_COL_NR]/$page1RowCount, 2, '.', '');
+            
+            $this->publisherFormData["1-Video_Total"] = $page1Totals[VIDEO_COL_NR];  
+            $this->publisherFormData["1-Video_Average"] = number_format($page1Totals[VIDEO_COL_NR]/$page1RowCount, 2, '.', '');
+            
+            $this->publisherFormData["1-Hours_Total"] = $page1Totals[HOURS_COL_NR];
+            $this->publisherFormData["1-Hours_Average"] = number_format($page1Totals[HOURS_COL_NR]/$page1RowCount, 2, '.', '');
+            
+            $this->publisherFormData["1-RV_Total"] = $page1Totals[RV_COL_NR];
+            $this->publisherFormData["1-RV_Average"] = number_format($page1Totals[RV_COL_NR]/$page1RowCount, 2, '.', '');
+        
+            $this->publisherFormData["1-Studies_Total"] = $page1Totals[STUDIES_COL_NR];
+            $this->publisherFormData["1-Studies_Average"] = number_format($page1Totals[STUDIES_COL_NR]/$page1RowCount, 2, '.', '');
+        }
+
+        if (count($page2RowCount) > 0) {
+          
+            $this->publisherFormData["2-Place_Total"] = $page2Totals[PLACE_COL_NR];
+            $this->publisherFormData["2-Place_Average"] = number_format($page2Totals[PLACE_COL_NR]/$page2RowCount, 2, '.', '');
+            
+            $this->publisherFormData["2-Video_Total"] = $page2Totals[VIDEO_COL_NR];  
+            $this->publisherFormData["2-Video_Average"] = number_format($page2Totals[VIDEO_COL_NR]/$page2RowCount, 2, '.', '');
+            
+            $this->publisherFormData["2-Hours_Total"] = $page2Totals[HOURS_COL_NR];
+            $this->publisherFormData["2-Hours_Average"] = number_format($page2Totals[HOURS_COL_NR]/$page2RowCount, 2, '.', '');
+            
+            $this->publisherFormData["2-RV_Total"] = $page2Totals[RV_COL_NR];
+            $this->publisherFormData["2-RV_Average"] = number_format($page2Totals[RV_COL_NR]/$page2RowCount, 2, '.', '');
+        
+            $this->publisherFormData["2-Studies_Total"] = $page2Totals[STUDIES_COL_NR];
+            $this->publisherFormData["2-Studies_Average"] = number_format($page2Totals[STUDIES_COL_NR]/$page2RowCount, 2, '.', '');
+        }
+
     }
 
     /**
